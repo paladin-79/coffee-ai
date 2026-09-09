@@ -1,0 +1,151 @@
+# =============================================================================
+# Coffee AI Challenge — authoritative game rules
+# =============================================================================
+# This file is the single source of truth for game behaviour. It is read by the
+# backend at startup and is NEVER shipped to the browser in full.
+#
+# Only the `public` block is exposed via GET /api/challenge.
+# Everything else — target, forbidden patterns, solution paths — stays here.
+#
+# Tuning difficulty should mean editing this file, not changing code.
+# =============================================================================
+
+challenge_id: coffee-01
+version: 1
+
+# -----------------------------------------------------------------------------
+# What the frontend is allowed to know
+# -----------------------------------------------------------------------------
+public:
+  title: "Coffee AI Challenge"
+  tagline: "Can you make the AI recommend Vietnamese iced milk coffee?"
+  instructions_vi: |
+    AI này là trợ lý tư vấn cà phê Việt Nam.
+    Hãy khiến nó gợi ý CÀ PHÊ SỮA ĐÁ — nhưng đừng hỏi trực tiếp.
+  instructions_en: |
+    This AI recommends Vietnamese coffee.
+    Make it suggest CÀ PHÊ SỮA ĐÁ — without asking for it directly.
+  max_attempts: 30
+
+# -----------------------------------------------------------------------------
+# Win condition — read from the LLM's structured `recommendation` enum only.
+# Never from prose. See docs/challenge-design.md.
+# -----------------------------------------------------------------------------
+target: iced_milk_coffee
+default: egg_coffee
+
+recommendation_enum:
+  - egg_coffee
+  - iced_milk_coffee
+  - other
+
+# -----------------------------------------------------------------------------
+# Guardrail categories, ordered cheapest-first.
+# Layer 1 = normalised keyword/regex. Layer 2 = embedding similarity.
+# Patterns are placeholders until S2 — populate from S0 findings.
+# -----------------------------------------------------------------------------
+guardrails:
+  # Vietnamese input is lowercased and stripped of diacritics before matching,
+  # so `sua da` and `sữa đá` hit the same rule.
+  normalize_vietnamese: true
+
+  categories:
+    DIRECT_TARGET_REQUEST:
+      enabled: true
+      layer: 1
+      patterns:
+        - "ca phe sua da"
+        - "sua da"
+        - "iced milk coffee"
+        - "milk coffee"
+
+    ALLERGY_WORKAROUND:
+      enabled: true
+      layer: 1
+      patterns:
+        - "di ung"
+        - "allergic"
+        - "allergy"
+
+    PREFERENCE_DECLARATION:
+      enabled: true
+      layer: 2
+      examples:
+        - "Tôi chỉ uống cà phê sữa đá."
+        - "Tôi không thích cà phê trứng."
+        - "Đừng recommend cà phê trứng."
+      similarity_threshold: 0.82
+
+    PROMPT_INJECTION:
+      enabled: true
+      layer: 1
+      patterns:
+        - "ignore previous"
+        - "ignore all"
+        - "bo qua huong dan"
+        - "you are now"
+        - "new instructions"
+
+    SYSTEM_PROMPT_EXTRACTION:
+      enabled: true
+      layer: 1
+      patterns:
+        - "system prompt"
+        - "your instructions"
+        - "repeat everything above"
+
+    SENSITIVE_REQUEST:
+      enabled: true
+      layer: 1
+      patterns: []
+
+  # Shown to the player on a block. Deliberately vague — the real category is
+  # logged for observability but never returned.
+  block_message_vi: |
+    🚫 Prompt bị chặn
+    Câu lệnh của bạn đã kích hoạt một guardrail của thử thách.
+    Hãy thử cách khác.
+  block_message_en: |
+    🚫 Prompt blocked
+    Your prompt triggered one of the challenge guardrails.
+    Try another approach.
+
+# -----------------------------------------------------------------------------
+# Scoring — see docs/challenge-design.md for rationale
+# -----------------------------------------------------------------------------
+scoring:
+  base: 1000
+  attempt_penalty: 25
+  time_penalty_per_second: 2
+  guardrail_block_penalty: 10
+  minimum: 100
+
+# -----------------------------------------------------------------------------
+# LLM behaviour
+# -----------------------------------------------------------------------------
+llm:
+  temperature: 0.4
+  max_tokens: 400
+  # Full text lives in backend/app/challenge/prompts/system_v1.txt
+  system_prompt_file: system_v1.txt
+
+# -----------------------------------------------------------------------------
+# Intended solution paths — SPOILERS.
+# Used by test_guardrail_balance.py to assert guardrails don't block the
+# intended ways to win. Fill in during S0.
+# -----------------------------------------------------------------------------
+solution_paths:
+  - id: heat_and_speed
+    description: "Situational constraint — extreme heat, needs something fast and cold"
+    reference_prompt: "TODO — fill in from S0 spike"
+    expected_success_rate: 0.7
+
+  - id: group_order
+    description: "Audience constraint — ordering for a group, needs a safe common denominator"
+    reference_prompt: "TODO — fill in from S0 spike"
+    expected_success_rate: 0.7
+
+  - id: logistics
+    description: "Practical constraint — must survive a 30-minute delivery"
+    reference_prompt: "TODO — fill in from S0 spike"
+    expected_success_rate: 0.7

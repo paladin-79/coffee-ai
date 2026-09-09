@@ -1,0 +1,46 @@
+# --- Secrets -----------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# --- Node / Next.js ----------------------------------------------------------
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+.pnp.*
+.yarn/
+
+# --- Docker / local volumes --------------------------------------------------
+.docker-data/
+grafana-data/
+prometheus-data/
+loki-data/
+langfuse-data/
+
+# --- Editors / OS ------------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# --- Spike output (may contain prompt experiments) ---------------------------
+scripts/out/
+*.local.md

@@ -1,0 +1,32 @@
+# --- Core (S1) ---------------------------------------------------------------
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+pyyaml
+httpx
+
+# --- Guardrails (S2) ---------------------------------------------------------
+# unidecode           # Vietnamese diacritic normalisation
+# sentence-transformers  # layer-2 embedding similarity
+
+# --- Observability (S3) ------------------------------------------------------
+# opentelemetry-sdk
+# opentelemetry-exporter-otlp
+# opentelemetry-instrumentation-fastapi
+# opentelemetry-instrumentation-httpx
+# langfuse
+# structlog
+
+# --- Gamification (S4) -------------------------------------------------------
+# redis
+
+# --- Hardening (S5) ----------------------------------------------------------
+# slowapi
+# tenacity
+
+# --- Dev ---------------------------------------------------------------------
+pytest
+pytest-asyncio
+ruff
+mypy

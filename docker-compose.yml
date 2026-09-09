@@ -1,0 +1,16 @@
+# =============================================================================
+# Coffee AI Challenge — local stack
+# =============================================================================
+# Services are added as sprints land:
+#   S1 -> coffee-backend, coffee-frontend
+#   S3 -> otel-collector, prometheus, loki, grafana, langfuse
+#   S4 -> redis
+#
+# Deviation from the original spec: the spec listed docker-compose.yml in three
+# places (root, docker/, langfuse/). One root file plus profiles is simpler and
+# avoids drift. langfuse/docker-compose.yml stays as an optional overlay.
+# =============================================================================
+
+name: coffee-ai
+
+services: {}

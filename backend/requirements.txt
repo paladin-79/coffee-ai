@@ -1,3 +1,7 @@
+# --- Spike (S0) -------------------------------------------------------------
+openai              # OpenAI-compatible client — used by scripts/spike.py
+python-dotenv       # load .env for the spike (FastAPI uses pydantic-settings)
+
 # --- Core (S1) ---------------------------------------------------------------
 fastapi
 uvicorn[standard]

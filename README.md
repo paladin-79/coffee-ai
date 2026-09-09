@@ -193,6 +193,11 @@ three things at once: every forbidden prompt is blocked, every intended solution
 path still passes, and every neutral prompt still passes. Guardrails that block
 the intended solutions are worse than no guardrails, and only a test catches it.
 
+S2 also introduces **adversary tracking**: an operator-only score that flags
+sessions attempting prompt injection or system-prompt extraction, kept entirely
+separate from the player's game score and never shown to the player. See
+[`docs/challenge-design.md`](docs/challenge-design.md) → Adversary tracking.
+
 **S3 — Observability → MVP complete.** Langfuse first (fastest debugging payoff),
 then OTel SDK with `gen_ai.*` semantic conventions, then collector →
 Prometheus/Loki → Grafana. Dashboards are provisioned from JSON in the repo, not

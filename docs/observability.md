@@ -17,10 +17,18 @@ Then OTel SDK, then collector, then Prometheus/Loki, then Grafana dashboards.
 challenge_started    prompt_received      guardrail_pass
 guardrail_block      llm_request          llm_response
 challenge_success    challenge_failed     session_finished
+adversary_signal     session_flagged
 ```
 
 All JSON, all carrying `session_id` and `trace_id` so a Loki query joins to a
 trace.
+
+`guardrail_block` on a signal category (`PROMPT_INJECTION`,
+`SYSTEM_PROMPT_EXTRACTION`, `SENSITIVE_REQUEST`) also carries `adversary: true`
+and `label: unsafe`. `adversary_signal` fires whenever the session's score
+changes (category first seen, or bypass detected) and carries the running
+total. `session_flagged` fires once, when the total first crosses
+`flag_threshold`.
 
 ## Dashboard intent
 
@@ -33,11 +41,14 @@ completion.
 **llm.json** — *Is the AI healthy and affordable?*
 Request rate, latency percentiles, token usage, error rate.
 
-**guardrails.json** — *What are players trying?*
-Block rate, blocks by category, injection attempts over time.
+**guardrails.json** — *What are players trying? Who is attacking?*
+Block rate, blocks by category, injection attempts over time, and a **Potential
+adversaries** table — sessions ranked by `adversary_tracking` score, flagged
+rows highlighted. See `challenge-design.md` → Adversary tracking.
 
 The guardrail dashboard is the interesting one during a live event. It shows in
-real time which shortcuts players reach for first.
+real time which shortcuts players reach for first, and which sessions are
+probing rather than playing.
 
 ## To document in S3
 
@@ -45,3 +56,4 @@ real time which shortcuts players reach for first.
 - [ ] Sampling decision (all-on is fine at this scale — say so and why)
 - [ ] Redaction approach when `LOG_PROMPTS=false`
 - [ ] Cardinality review: which labels are safe, which would explode
+- [ ] Adversary panel: the exact query, the threshold, and how a flagged session gets reviewed after the event

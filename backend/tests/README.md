@@ -16,4 +16,5 @@ suite would notice. Run it after every change to `guardrails/` or
 `challenge.yaml`.
 
 Fixtures live in `fixtures/`: `forbidden.yaml`, `solutions.yaml`,
-`neutral.yaml`.
+`neutral.yaml`. Each is a YAML list; an entry is a plain string or a mapping
+with a `prompt` key. `scripts/spike.py --suite` replays the same files in S0.

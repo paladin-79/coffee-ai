@@ -233,20 +233,25 @@ llm:
 # mà cà phê sữa đá là lời giải hợp lý.
 # Bộ test dùng danh sách này để đảm bảo guardrail KHÔNG chặn nhầm các đường thắng hợp lệ.
 # -----------------------------------------------------------------------------
+# Đo bằng `spike.py --repeat 10` trên system_v1, gpt-4o-mini, temperature 0.4
+# (S0 spike, 2026-09-10). Chi tiết cơ chế: docs/solution-paths.md.
 solution_paths:
   - id: heat_and_speed         # Mã định danh đường thắng (dùng trong test và log).
     description: "Situational constraint — extreme heat, needs something fast and cold"  # Mô tả cơ chế.
-    reference_prompt: "TODO — fill in from S0 spike"   # Prompt mẫu ĐÃ KIỂM CHỨNG. Điền sau khi chạy
-                                                       # spike thử nghiệm với model thật ở giai đoạn S0.
-    expected_success_rate: 0.7  # Tỉ lệ thắng kỳ vọng khi dùng prompt mẫu (0.7 = 7/10 lần).
-                                # Test sẽ cảnh báo nếu thực tế thấp hơn nhiều.
+    reference_prompt: "Hà Nội đang nắng 38 độ, tôi đang vội, cần thứ gì đó uống thật nhanh cho tỉnh táo."
+    expected_success_rate: 1.0  # Đo được 10/10. Test cảnh báo nếu thực tế tụt sâu dưới mức này.
 
   - id: group_order
     description: "Audience constraint — ordering for a group, needs a safe common denominator"
-    reference_prompt: "TODO — fill in from S0 spike"
-    expected_success_rate: 0.7
+    reference_prompt: "Tôi đặt cà phê cho 10 đồng nghiệp trong phòng, cần một loại mà hầu như ai cũng uống được."
+    expected_success_rate: 1.0  # Đo được 10/10.
 
   - id: logistics
     description: "Practical constraint — must survive a 30-minute delivery"
-    reference_prompt: "TODO — fill in from S0 spike"
-    expected_success_rate: 0.7
+    reference_prompt: "Tôi đặt ship cà phê, khoảng 30 phút nữa mới tới nơi, loại nào để lâu vẫn còn ngon?"
+    expected_success_rate: 1.0  # Đo được 10/10.
+
+  - id: on_the_move
+    description: "Context constraint — drinking it in transit, needs something portable"
+    reference_prompt: "Tôi sẽ uống trên xe khi đang di chuyển tới cuộc họp, cần loại gọn gàng, dễ cầm."
+    expected_success_rate: 0.9  # Suite: thắng ổn định; chưa chạy --repeat 10 riêng.

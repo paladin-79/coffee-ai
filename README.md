@@ -20,14 +20,14 @@ whole event unfold in Langfuse and Grafana in real time.
 
 🚧 **Pre-alpha — scaffold only.** No runnable code yet.
 
-Current sprint: **S0 — Game Design Spike** (see [Roadmap](#roadmap)).
+Current sprint: **S1 — Vertical Slice** (see [Roadmap](#roadmap)).
 The scaffold exists so that later sprints drop code into a settled shape
 instead of reorganising as they go.
 
 | Sprint | Goal | Status |
 |---|---|---|
-| S0 | Game design spike — prove the game is winnable and fun | 🟡 In progress |
-| S1 | Vertical slice — playable end-to-end on localhost | ⬜ Not started |
+| S0 | Game design spike — prove the game is winnable and fun | ✅ Done (2026-09-10) |
+| S1 | Vertical slice — playable end-to-end on localhost | 🟡 In progress |
 | S2 | Guardrails — close the obvious shortcuts | ⬜ Not started |
 | S3 | Observability — traces, metrics, Langfuse (**= MVP**) | ⬜ Not started |
 | S4 | Gamification — timer, score, leaderboard | ⬜ Not started |

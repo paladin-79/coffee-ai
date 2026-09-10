@@ -8,9 +8,14 @@ winnable and fun?*
 
 ```bash
 python spike.py --prompt "Trời Hà Nội hôm nay 38 độ, tôi cần gì đó uống nhanh."
-python spike.py --suite              # replay backend/tests/fixtures/
+python spike.py --suite              # replay backend/tests/fixtures/*.yaml
 python spike.py --repeat 10 --prompt "..."   # measure stability
+python spike.py --suite -c 12        # widen the thread pool (default 8)
 ```
+
+Use the venv's `python` (or `.venv\Scripts\python.exe`), not `py` — the `py`
+launcher ignores the active venv. `--suite` and `--repeat` fan out across
+threads, so a run costs about one request of wall time, not N.
 
 Log every result into `docs/solution-paths.md`. The exit criteria for S0 are
 numeric: three or more distinct solution paths at ≥70% success, ordinary prompts

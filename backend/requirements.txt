@@ -34,3 +34,4 @@ pytest
 pytest-asyncio
 ruff
 mypy
+types-PyYAML

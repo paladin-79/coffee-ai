@@ -60,19 +60,25 @@ prompts, 93% egg coffee on neutral, forbidden resisted). Ready for S1.
 FastAPI + Next.js, chat working end-to-end, structured output wired, challenge
 engine reading the enum. No guardrails, no score, no dashboards.
 
-### Backend
-- [ ] `app/main.py` — app factory, middleware, config load
-- [ ] `app/config.py` — `pydantic-settings`, env in / typed settings out
-- [ ] `challenge.yaml` loader — parsed once at startup, typed model, clear error on malformed file
-- [ ] `app/llm/` — provider interface + one OpenAI-compatible impl; parses model JSON into a typed object; parse failure = explicit failed attempt, never a guess
-- [ ] `app/challenge/engine.py` — deterministic evaluation: `recommendation == target` → success
-- [ ] `app/store/memory.py` behind a `store` interface (sessions + timer start)
-- [ ] `POST /api/session` — creates session, starts server-side timer
-- [ ] `POST /api/chat` — one attempt: llm call → evaluate → response, attempt counter increments
-- [ ] `GET /api/challenge` — returns the `public` block only, never the full YAML
-- [ ] `GET /api/health`
+> **Paused 2026-09-10.** Backend + frontend + Docker files all written; backend
+> 21 tests green; frontend builds. Not yet verified: `docker compose up`
+> (Docker not on that machine) and the live win path (OpenAI account out of
+> credits → 429). Resume on a Docker machine — see the plan file's PAUSED
+> section. Nothing committed yet.
 
-### Frontend
+### Backend  — Stage A done (2026-09-10), 21 tests green
+- [x] `app/main.py` — `create_app` factory, CORS, lifespan loads rules + provider + store
+- [x] `app/config.py` — `pydantic-settings`, env in / typed settings out; `rules_path` fallback
+- [x] `challenge/rules.py` loader — parsed once at startup, typed `Rules` model, `RulesError` on malformed file
+- [x] `app/llm/` — `LLMProvider` ABC + `OpenAICompatibleProvider`; `parsing.parse_completion_body` never raises; transport failure → `LLMTransportError`
+- [x] `app/challenge/engine.py` — `evaluate(recommendation, rules)` → `Evaluation(success, recommendation, readable)`
+- [x] `app/store/memory.py` — `InMemoryStore` behind the `store.Store` interface; `Session.created_at` = server timer
+- [x] `POST /api/session` — creates session, `player_id` + UUID `session_id`, server-side `created_at`
+- [x] `POST /api/chat` — session checks → llm → evaluate → response; attempt counter; 404 / 409 / 503 taxonomy
+- [x] `GET /api/challenge` — returns `public` block only (test asserts exact key set)
+- [x] `GET /api/health`
+
+### Frontend  — Stage B, not started
 - [ ] `docker compose up -d` → playable at `localhost:3000`
 - [ ] Landing page with `public` title / tagline / instructions
 - [ ] `/play` chat interface
@@ -81,18 +87,18 @@ engine reading the enum. No guardrails, no score, no dashboards.
 - [ ] Player session persisted (nickname optional, random `player_id`, UUID `session_id`)
 
 ### Tests
-- [ ] ≥ 5 unit tests on `challenge/engine.py` (enum match, `other`, malformed JSON, missing field, non-enum value)
-- [ ] S0 solution paths still win through the UI
+- [x] `test_engine.py` (7) + `test_parsing.py` (6) + `test_api.py` (8) — 21 pass, no network
+- [ ] S0 solution paths still win through the UI  ← **blocked: OpenAI account has no credits (429 insufficient_quota)**
 
 ### Docs
-- [ ] `architecture.md` "To document in S1" section completed
+- [x] `architecture.md` "To document in S1" section completed (structured-output contract, session lifecycle, rules loading, error taxonomy)
 
 ### Exit criteria
 - [ ] `docker compose up -d` → playable at `localhost:3000`
-- [ ] Structured output wired end-to-end
-- [ ] S0 solution paths still win through the UI
-- [ ] Attempt counter correct
-- [ ] ≥ 5 unit tests on `challenge/engine.py`
+- [x] Structured output wired end-to-end (code + unit tests; live win path pending credits)
+- [ ] S0 solution paths still win through the UI  ← blocked on OpenAI credits
+- [ ] Attempt counter correct  ← unit-tested; confirm through the UI in Stage B
+- [x] ≥ 5 unit tests on `challenge/engine.py` (7)
 
 ---
 

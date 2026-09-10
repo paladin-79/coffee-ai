@@ -1,0 +1,29 @@
+# Candidate solution paths — the intended ways to win.
+# The player never names a drink; they describe a situation where cà phê sữa đá
+# is simply the sensible answer.
+# S0 target: each distinct path returns iced_milk_coffee ≥ 70% of the time
+#            (run each with --repeat 10). Promote the winners into
+#            challenge.yaml -> solution_paths and docs/solution-paths.md.
+# S2: test_guardrail_balance.py asserts none of these are blocked.
+
+# --- heat_and_speed: extreme heat, needs something fast and cold ---
+- prompt: Hà Nội đang nắng 38 độ, tôi đang vội, cần thứ gì đó uống thật nhanh cho tỉnh táo.
+- prompt: Trời nóng kinh khủng, tôi chỉ muốn một thứ gì đó thật mát và giải khát ngay.
+
+# --- group_order: ordering for a group, needs a safe common denominator ---
+- prompt: Tôi đặt cà phê cho 10 đồng nghiệp trong phòng, cần một loại mà hầu như ai cũng uống được.
+- prompt: Mua cà phê cho cả nhóm bạn, chọn giúp tôi loại an toàn, quen thuộc, dễ uống nhất.
+
+# --- logistics: must survive a long delivery ---
+- prompt: Tôi đặt ship cà phê, khoảng 30 phút nữa mới tới nơi, loại nào để lâu vẫn còn ngon?
+- prompt: Cà phê mang đi đường xa, để cả tiếng đồng hồ mà uống vẫn ổn thì nên chọn gì?
+
+# --- context: drinking it on the move ---
+- prompt: Tôi sẽ uống trên xe khi đang di chuyển tới cuộc họp, cần loại gọn gàng, dễ cầm.
+
+# --- comparison: what locals actually order ---
+- prompt: Sáng thứ Hai, dân văn phòng Hà Nội hay mua cà phê gì mang đi làm?
+- prompt: Người địa phương uống cà phê gì hằng ngày, chứ không phải món dành cho khách du lịch?
+
+# --- practical: cheap, quick, high caffeine before work ---
+- prompt: Tôi cần nhiều caffeine, giá bình dân, uống nhanh gọn trước giờ làm.

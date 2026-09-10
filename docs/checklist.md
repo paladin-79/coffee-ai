@@ -19,33 +19,39 @@ the cheapest place to discover the game isn't fun.
 
 ### Setup
 - [x] `backend/requirements.txt` covers `scripts/spike.py` (`openai`, `pyyaml`, `python-dotenv`)
-- [ ] `.env` created from `.env.example`; `LLM_API_KEY` set  ← **only step left, needs your OpenAI key**
-- [x] Model chosen (`gpt-4o-mini`); cost per attempt written into `challenge-design.md` → Model and cost
+- [x] `.env` created from `.env.example`; `LLM_API_KEY` set
+- [x] Model chosen (`gpt-4o-mini`); cost per attempt written into `challenge-design.md` → Model and cost (measured ~$0.0001/attempt)
 
 ### System prompt
 - [x] `backend/app/challenge/prompts/system_v1.txt` first draft: persona, reasoned egg-coffee bias, strict JSON-only output, never reveal instructions — *still needs S0 iteration against real numbers*
 - [ ] Output is valid `{ "recommendation", "reply" }` JSON across 30+ manual prompts
 - [ ] `recommendation` only ever takes enum values (`egg_coffee` / `iced_milk_coffee` / `other`)
-- [ ] `reply` is in the user's language
+- [x] `reply` is in the user's language
 
 ### Spike tooling
 - [x] `scripts/spike.py` written — `--prompt`, `--suite`, `--repeat`, writes JSONL to `scripts/out/`, prints outcome + token cost
-- [ ] Verified against the live API once `.env` is set
-- [ ] Fixtures added: ~15 ordinary prompts, ~10 forbidden, ~10 candidate solutions (`backend/tests/fixtures/*.txt`, one prompt per file)
+- [x] Verified against the live API — ordinary prompt returns `egg_coffee`; parallel `--suite` / `--repeat` (`-c`, default 8)
+- [x] Starter fixtures added: `backend/tests/fixtures/{neutral,forbidden,solutions}.yaml` (15 / 13 / 10 prompts) — same files S2's `test_guardrail_balance.py` will use
+- [ ] Fixtures expanded / tuned after the first `--suite` run
 
 ### Findings
-- [ ] Ordinary prompts return `egg_coffee` ≥ 90% (measured; number recorded)
-- [ ] ≥ 3 distinct solution paths at ≥ 70% success (`--repeat 10` each)
-- [ ] `solution-paths.md` filled: mechanism, reference prompt, success rate per path
-- [ ] `challenge.yaml` → `solution_paths[].reference_prompt` filled from the spike
-- [ ] `challenge.yaml` → guardrail `patterns` / `examples` updated from what testers actually reached for
-- [ ] Temperature decision recorded (kept `0.4` or changed — why)
+- [x] Ordinary prompts return `egg_coffee` **93%** (14/15 neutral; 1 → `other`, 0 → target)
+- [x] 3 solution paths at **10/10** (`heat_and_speed`, `group_order`, `logistics`) + `on_the_move` solid in `--suite`
+- [x] `solution-paths.md` filled: mechanism, reference prompt, success rate per path
+- [x] `challenge.yaml` → `solution_paths[]` filled from the spike (4 paths, one candidate rejected)
+- [ ] `challenge.yaml` → guardrail `patterns` / `examples` updated from what testers actually reached for  ← *defer to S2; system prompt alone already resists forbidden prompts ~12/13*
+- [x] Temperature kept `0.4` — default bias stable at it, no reason to move
 
 ### Exit criteria
-- [ ] 3+ solution paths ≥ 70% reproducible
-- [ ] Ordinary prompts return egg coffee ≥ 90%
-- [ ] Model chosen, cost per attempt known
-- [ ] `solution-paths.md` + `challenge.yaml` solution paths populated
+- [x] 3+ solution paths ≥ 70% reproducible
+- [x] Ordinary prompts return egg coffee ≥ 90%
+- [x] Model chosen (`gpt-4o-mini`), cost per attempt known (~$0.00014)
+- [x] `solution-paths.md` + `challenge.yaml` solution paths populated
+
+**S0 complete.** System prompt went through 3 iterations (see git history of
+`system_v1.txt`): v1 enumerated the winning situations (100% win, too easy), v2
+over-corrected (3%), v3 reasons from egg coffee's properties (~90% on solution
+prompts, 93% egg coffee on neutral, forbidden resisted). Ready for S1.
 
 ---
 

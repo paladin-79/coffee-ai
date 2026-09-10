@@ -82,11 +82,11 @@ Levers, in order of preference:
 
 ## Sprint exit criteria
 
-### S0 — Game Design Spike
-- [ ] Three or more solution paths at ≥70% success
-- [ ] Ordinary prompts return egg coffee ≥90% of the time
-- [ ] Model chosen, cost per attempt calculated
-- [ ] `solution-paths.md` populated, `challenge.yaml` solution paths filled in
+### S0 — Game Design Spike ✅ 2026-09-10
+- [x] Three or more solution paths at ≥70% success — 3 paths at 10/10, 1 more solid
+- [x] Ordinary prompts return egg coffee ≥90% of the time — 93%
+- [x] Model chosen, cost per attempt calculated — `gpt-4o-mini`, ~$0.00014
+- [x] `solution-paths.md` populated, `challenge.yaml` solution paths filled in
 
 ### S1 — Vertical Slice
 - [ ] `docker compose up -d` → playable at localhost:3000

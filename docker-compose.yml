@@ -9,8 +9,35 @@
 # Deviation from the original spec: the spec listed docker-compose.yml in three
 # places (root, docker/, langfuse/). One root file plus profiles is simpler and
 # avoids drift. langfuse/docker-compose.yml stays as an optional overlay.
+#
+# Run:  cp .env.example .env  (set LLM_API_KEY)  then  docker compose up -d
+#       frontend -> http://localhost:3000    backend -> http://localhost:8000/docs
 # =============================================================================
 
 name: coffee-ai
 
-services: {}
+services:
+  coffee-backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      # The rules file is mounted below; point the app at the mount, not the
+      # repo-root fallback baked into config.py.
+      CHALLENGE_CONFIG_PATH: /app/challenge.yaml
+    volumes:
+      - ./challenge.yaml:/app/challenge.yaml:ro
+    restart: unless-stopped
+
+  coffee-frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # Browser-side calls: the host-mapped backend port, not the compose
+      # service name (the fetch runs in the visitor's browser).
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    depends_on:
+      - coffee-backend
+    restart: unless-stopped

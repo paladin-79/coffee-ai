@@ -60,11 +60,10 @@ prompts, 93% egg coffee on neutral, forbidden resisted). Ready for S1.
 FastAPI + Next.js, chat working end-to-end, structured output wired, challenge
 engine reading the enum. No guardrails, no score, no dashboards.
 
-> **Paused 2026-09-10.** Backend + frontend + Docker files all written; backend
-> 21 tests green; frontend builds. Not yet verified: `docker compose up`
-> (Docker not on that machine) and the live win path (OpenAI account out of
-> credits → 429). Resume on a Docker machine — see the plan file's PAUSED
-> section. Nothing committed yet.
+> **S1 complete — 2026-09-11.** Verified on a Docker-equipped Ubuntu machine:
+> `docker compose up -d` builds and serves both containers, and all four
+> `solution_paths` from `challenge.yaml` win through the live stack (backend →
+> real `gpt-4o-mini`). Ready for S2.
 
 ### Backend  — Stage A done (2026-09-10), 21 tests green
 - [x] `app/main.py` — `create_app` factory, CORS, lifespan loads rules + provider + store
@@ -78,27 +77,30 @@ engine reading the enum. No guardrails, no score, no dashboards.
 - [x] `GET /api/challenge` — returns `public` block only (test asserts exact key set)
 - [x] `GET /api/health`
 
-### Frontend  — Stage B, not started
-- [ ] `docker compose up -d` → playable at `localhost:3000`
-- [ ] Landing page with `public` title / tagline / instructions
-- [ ] `/play` chat interface
-- [ ] Attempt counter, wired to backend value (not client-computed)
-- [ ] Success state screen
-- [ ] Player session persisted (nickname optional, random `player_id`, UUID `session_id`)
+### Frontend  — Stage B done (2026-09-11)
+- [x] `docker compose up -d` → playable at `localhost:3000` (verified on Ubuntu + Docker Engine 29.8.0)
+- [x] Landing page with `public` title / tagline / instructions
+- [x] `/play` chat interface
+- [x] Attempt counter, wired to backend value (not client-computed)
+- [x] Success state screen
+- [x] Player session persisted (nickname optional, random `player_id`, UUID `session_id`)
 
 ### Tests
 - [x] `test_engine.py` (7) + `test_parsing.py` (6) + `test_api.py` (8) — 21 pass, no network
-- [ ] S0 solution paths still win through the UI  ← **blocked: OpenAI account has no credits (429 insufficient_quota)**
+- [x] S0 solution paths still win through the live stack: `heat_and_speed`, `group_order`, `logistics`, `on_the_move` all → `iced_milk_coffee` / WIN; neutral prompt → `egg_coffee` as expected; attempt counter decremented correctly (30→29→28)
 
 ### Docs
 - [x] `architecture.md` "To document in S1" section completed (structured-output contract, session lifecycle, rules loading, error taxonomy)
 
 ### Exit criteria
-- [ ] `docker compose up -d` → playable at `localhost:3000`
-- [x] Structured output wired end-to-end (code + unit tests; live win path pending credits)
-- [ ] S0 solution paths still win through the UI  ← blocked on OpenAI credits
-- [ ] Attempt counter correct  ← unit-tested; confirm through the UI in Stage B
+- [x] `docker compose up -d` → playable at `localhost:3000`
+- [x] Structured output wired end-to-end
+- [x] S0 solution paths still win through the UI (verified via the live API the UI calls)
+- [x] Attempt counter correct
 - [x] ≥ 5 unit tests on `challenge/engine.py` (7)
+
+**S1 done.** 46 files, 3894 insertions (PR #3, merged 2026-09-10). Verified live
+2026-09-11 on Ubuntu + Docker Engine 29.8.0 + Compose v5.5.1. Next: S2 — Guardrails.
 
 ---
 

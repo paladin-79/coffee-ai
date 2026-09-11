@@ -18,17 +18,16 @@ whole event unfold in Langfuse and Grafana in real time.
 
 ## Status
 
-🚧 **Pre-alpha — scaffold only.** No runnable code yet.
+🚧 **Alpha — playable end-to-end.** `docker compose up -d` brings up a working
+game at `localhost:3000`.
 
-Current sprint: **S1 — Vertical Slice** (see [Roadmap](#roadmap)).
-The scaffold exists so that later sprints drop code into a settled shape
-instead of reorganising as they go.
+Current sprint: **S2 — Guardrails** (see [Roadmap](#roadmap)).
 
 | Sprint | Goal | Status |
 |---|---|---|
 | S0 | Game design spike — prove the game is winnable and fun | ✅ Done (2026-09-10) |
-| S1 | Vertical slice — playable end-to-end on localhost | 🟡 In progress |
-| S2 | Guardrails — close the obvious shortcuts | ⬜ Not started |
+| S1 | Vertical slice — playable end-to-end on localhost | ✅ Done (2026-09-11) |
+| S2 | Guardrails — close the obvious shortcuts | 🟡 In progress |
 | S3 | Observability — traces, metrics, Langfuse (**= MVP**) | ⬜ Not started |
 | S4 | Gamification — timer, score, leaderboard | ⬜ Not started |
 | S5 | Event hardening — survive 50 concurrent players | ⬜ Not started |
@@ -131,17 +130,56 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Once S1 lands, this brings up:
+Stop it with `docker compose down` (removes the containers; images and
+`node_modules`/`pip` layers stay cached, so the next `up -d` is fast). Use
+`docker compose stop` instead if you just want to pause without tearing the
+containers down.
+
+> **Linux: `permission denied … docker.sock`?** Your user isn't in the
+> `docker` group yet.
+> ```bash
+> sudo usermod -aG docker $USER
+> newgrp docker   # or log out and back in — group changes need a fresh shell
+> ```
+
+Live since S1:
 
 | Service | URL | Purpose |
 |---|---|---|
 | coffee-frontend | http://localhost:3000 | The game |
 | coffee-backend | http://localhost:8000/docs | API + OpenAPI explorer |
+
+Arriving in S3 (observability):
+
+| Service | URL | Purpose |
+|---|---|---|
 | grafana | http://localhost:3001 | Game / LLM / guardrail dashboards |
 | langfuse | http://localhost:3002 | Per-attempt LLM trace inspection |
 | prometheus | http://localhost:9090 | Metrics store |
 | loki | http://localhost:3100 | Log store |
 | otel-collector | :4317 / :4318 | Telemetry ingest |
+
+### Run without Docker
+
+Useful for backend/frontend development with hot reload. Needs Python 3.11+
+and Node 20+. Run both in separate terminals, backend first:
+
+```bash
+# terminal 1 — backend, http://localhost:8000
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+
+# terminal 2 — frontend, http://localhost:3000
+cd frontend
+npm install
+npm run dev
+```
+
+`challenge.yaml` is read from the repo root by default (no `CHALLENGE_CONFIG_PATH`
+needed outside Docker — see `backend/app/config.py`). Details:
+[`backend/README.md`](backend/README.md), [`frontend/README.md`](frontend/README.md).
 
 ### Run the design spike (available now)
 

@@ -96,7 +96,8 @@ export default function PlayPage() {
         setMessages((m) => [
           ...m,
           {
-            role: "ai",
+            // A blocked prompt never reached the model, so it is not an AI turn.
+            role: res.blocked ? "blocked" : "ai",
             text: res.reply,
             outcome: res.success
               ? "won"

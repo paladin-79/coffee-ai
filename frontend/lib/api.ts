@@ -26,6 +26,12 @@ export interface ChatResult {
   reply: string;
   recommendation: string | null;
   success: boolean;
+  /**
+   * A guardrail stopped the prompt; no model ran. `reply` is the vague block
+   * message from challenge.yaml. The backend never says which guardrail fired
+   * — that stays server-side, so there is nothing more to show here.
+   */
+  blocked: boolean;
   status: SessionStatus;
   attempt: number;
   attempts_remaining: number;

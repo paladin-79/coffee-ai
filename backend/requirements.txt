@@ -11,8 +11,10 @@ pyyaml
 httpx
 
 # --- Guardrails (S2) ---------------------------------------------------------
-# unidecode           # Vietnamese diacritic normalisation
-# sentence-transformers  # layer-2 embedding similarity
+# No new dependencies:
+#   Vietnamese normalisation  -> stdlib `unicodedata` (app/guardrails/normalize.py)
+#   layer-2 embeddings        -> `openai` above, text-embedding-3-small
+# sentence-transformers was considered and rejected: it pulls torch (~2-3 GB image).
 
 # --- Observability (S3) ------------------------------------------------------
 # opentelemetry-sdk

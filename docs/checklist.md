@@ -39,7 +39,7 @@ the cheapest place to discover the game isn't fun.
 - [x] 3 solution paths at **10/10** (`heat_and_speed`, `group_order`, `logistics`) + `on_the_move` solid in `--suite`
 - [x] `solution-paths.md` filled: mechanism, reference prompt, success rate per path
 - [x] `challenge.yaml` → `solution_paths[]` filled from the spike (4 paths, one candidate rejected)
-- [ ] `challenge.yaml` → guardrail `patterns` / `examples` updated from what testers actually reached for  ← *defer to S2; system prompt alone already resists forbidden prompts ~12/13*
+- [x] `challenge.yaml` → guardrail `patterns` / `examples` updated from what testers actually reached for  ← *done in S2 (challenge.yaml v2)*
 - [x] Temperature kept `0.4` — default bias stable at it, no reason to move
 
 ### Exit criteria
@@ -109,43 +109,59 @@ engine reading the enum. No guardrails, no score, no dashboards.
 Close the obvious shortcuts. Layered: normalised keyword/regex first, then
 embedding similarity for paraphrases. LLM-as-judge is out of scope.
 
+> **S2 complete — 2026-09-14.** 148 backend tests pass, ruff + mypy clean,
+> frontend `tsc` clean. Verified on Windows + Docker Desktop:
+> - `RUN_LIVE_TESTS=1` balance run green against `text-embedding-3-small` (9.6s)
+> - live stack: layer-1 block, 2 signal blocks → `session_flagged` at score 6,
+>   layer-2 block (`PREFERENCE_DECLARATION`, similarity 0.918), then
+>   `heat_and_speed` passes and wins; attempts 30→25, blocks counted; no
+>   category in any response; no `guardrail_degraded`.
+> - UI: "sữa đá" at `localhost:3000` → rose "Prompt bị chặn" notice, distinct
+>   from AI replies, counter 29/30, Vietnamese renders correctly.
+>
+> Garbled Vietnamese in that PowerShell session was display-only (Windows
+> PowerShell decoding the response / console codepage). The backend received
+> correct UTF-8 — normalisation matched and layer 2 scored 0.918.
+
 ### Guardrail engine
-- [ ] `app/guardrails/` — layered evaluation, cheapest layer first
-- [ ] Vietnamese normalisation (lowercase + strip diacritics) before layer-1 matching
-- [ ] Layer 1: keyword/regex for `DIRECT_TARGET_REQUEST`, `ALLERGY_WORKAROUND`, `PROMPT_INJECTION`, `SYSTEM_PROMPT_EXTRACTION`, `SENSITIVE_REQUEST`
-- [ ] Layer 2: embedding similarity for `PREFERENCE_DECLARATION` (threshold from `challenge.yaml`)
-- [ ] All six categories toggleable via `enabled` in `challenge.yaml`
-- [ ] Block returns the vague `block_message_*`; real category never sent to the client
-- [ ] Real category + prompt logged for observability
-- [ ] Blocked attempt still counts against `max_attempts` (confirm this is the intended rule)
+- [x] `app/guardrails/` — layered evaluation, cheapest layer first (`engine.py`)
+- [x] Vietnamese normalisation (lowercase + strip diacritics) before layer-1 matching — stdlib, no `unidecode`
+- [x] Layer 1: keyword/regex for `DIRECT_TARGET_REQUEST`, `ALLERGY_WORKAROUND`, `PROMPT_INJECTION`, `SYSTEM_PROMPT_EXTRACTION`, `SENSITIVE_REQUEST` — literal by default, `re:` prefix for regex; `SENSITIVE_REQUEST` populated
+- [x] Layer 2: embedding similarity for `PREFERENCE_DECLARATION` (threshold from `challenge.yaml`) — `text-embedding-3-small`, fails open
+- [x] All six categories toggleable via `enabled` in `challenge.yaml`
+- [x] Block returns the vague `block_message_*`; real category never sent to the client — frontend shows it as a distinct "blocked" bubble
+- [x] Real category + prompt logged for observability (`telemetry/events.py`; prompt redacted when `LOG_PROMPTS=false`)
+- [x] Blocked attempt still counts against `max_attempts` — **confirmed 2026-09-13**
+- [x] Category order in `challenge.yaml` = priority; signal categories first so a combined injection + target-name prompt scores as the attack
 
 ### Adversary tracking
-- [ ] `adversary_tracking` config read from `challenge.yaml`
-- [ ] Per-session signal score: signal categories weighted, `count_distinct_only` respected
-- [ ] Signal-category block emits `adversary_signal` event + `label: unsafe` on the block
-- [ ] `session_flagged` event when score first crosses `flag_threshold`
-- [ ] Score is never added to / subtracted from the player's game score
-- [ ] Nothing about adversary state is exposed on `GET /api/challenge` or any client response
+- [x] `adversary_tracking` config read from `challenge.yaml` (unknown signal category → `RulesError` at startup)
+- [x] Per-session signal score: signal categories weighted, `count_distinct_only` respected
+- [x] Signal-category block emits `adversary_signal` event + `label: unsafe` on the block
+- [x] `session_flagged` event when score first crosses `flag_threshold`
+- [x] Score is never added to / subtracted from the player's game score (no score exists until S4; adversary state lives in separate fields)
+- [x] Nothing about adversary state is exposed on `GET /api/challenge` or any client response — asserted in `test_api.py`
 
 ### Tests
-- [ ] `tests/test_guardrail_balance.py` asserts, in one run:
-  - [ ] every forbidden prompt is blocked
-  - [ ] every intended solution path still passes
-  - [ ] every neutral prompt still passes
-- [ ] ≥ 5 test cases per category
-- [ ] Adversary score test: naive categories score 0; signal categories score their weight; distinct-only holds
+- [x] `tests/test_guardrail_balance.py` asserts, in one run:
+  - [x] every forbidden prompt is blocked (and in the expected category)
+  - [x] every intended solution path still passes (fixtures + `solution_paths[].reference_prompt`)
+  - [x] every neutral prompt still passes — caught a real false positive on first run (`tu tu` = "từ từ")
+- [x] ≥ 5 test cases per category (6–7 each, 41 total; enforced by a test)
+- [x] Adversary score test: naive categories score 0; signal categories score their weight; distinct-only holds (`test_adversary.py`)
+- [x] `RUN_LIVE_TESTS=1 pytest tests/test_guardrail_balance.py` green against the real embedder (2026-09-14)
 
 ### Docs
-- [ ] Forbidden list confirmed to live in `challenge.yaml`, not the frontend bundle
-- [ ] `architecture.md` "To document in S2" section completed
+- [x] Forbidden list confirmed to live in `challenge.yaml`, not the frontend bundle (grep of `frontend/` finds only the public goal text)
+- [x] `architecture.md` "To document in S2" section completed (Guardrails, Adversary state, Bypass detection)
 
 ### Exit criteria
-- [ ] Six categories live, ≥ 5 test cases each
-- [ ] Block response friendly, real category never returned to the client
-- [ ] `test_guardrail_balance.py` green
-- [ ] Forbidden list in `challenge.yaml`, not the frontend
-- [ ] `adversary_tracking` signal score computed per session
-- [ ] Signal-category blocks flagged in telemetry
+- [x] Six categories live, ≥ 5 test cases each
+- [x] Block response friendly, real category never returned to the client
+- [x] `test_guardrail_balance.py` green (offline and live)
+- [x] Forbidden list in `challenge.yaml`, not the frontend
+- [x] `adversary_tracking` signal score computed per session
+- [x] Signal-category blocks flagged in telemetry
 
 ---
 

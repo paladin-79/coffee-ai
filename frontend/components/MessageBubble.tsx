@@ -1,4 +1,4 @@
-export type Role = "user" | "ai" | "system";
+export type Role = "user" | "ai" | "system" | "blocked";
 
 export interface ChatMessage {
   role: Role;
@@ -8,6 +8,17 @@ export interface ChatMessage {
 }
 
 export function MessageBubble({ message }: { message: ChatMessage }) {
+  // A guardrail block is deliberately styled apart from the AI's own replies:
+  // the assistant did not say this, and the attempt still counted. Which
+  // guardrail fired is never sent to the browser.
+  if (message.role === "blocked") {
+    return (
+      <div className="mx-auto max-w-md whitespace-pre-wrap rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-center text-sm text-rose-900">
+        {message.text}
+      </div>
+    );
+  }
+
   if (message.role === "system") {
     return (
       <div className="mx-auto max-w-md rounded-md bg-amber-100 px-3 py-2 text-center text-sm text-amber-900">

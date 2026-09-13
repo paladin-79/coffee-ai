@@ -8,6 +8,7 @@ import a concrete store.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 
 from app.store.schemas import Session, SessionStatus
 
@@ -32,3 +33,20 @@ class Store(ABC):
     @abstractmethod
     async def finish(self, session_id: str, status: SessionStatus) -> Session:
         """Mark the session ``won`` or ``lost`` and stamp ``finished_at``."""
+
+    @abstractmethod
+    async def record_block(
+        self,
+        session_id: str,
+        *,
+        category: str,
+        points: int,
+        flagged: bool,
+        embedding: Sequence[float] | None = None,
+    ) -> Session:
+        """Record one guardrail block against the session.
+
+        Deliberately dumb: the caller has already decided how many ``points`` the
+        block is worth and whether the session is now ``flagged``. Weighing is
+        ``guardrails/``'s job (it owns the config); this layer only persists.
+        """

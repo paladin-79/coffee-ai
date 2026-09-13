@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = 20.0
     llm_max_retries: int = 2
 
+    # --- Guardrail layer 2 ---------------------------------------------------
+    # Uses the same endpoint and key as the chat model. Kept short: this call is
+    # on the attempt path, and the engine fails open rather than make the player
+    # wait. See app/guardrails/embeddings.py.
+    embedding_model: str = "text-embedding-3-small"
+    embedding_timeout_seconds: float = 8.0
+
     # --- Backend ----------------------------------------------------------
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000

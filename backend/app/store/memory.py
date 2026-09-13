@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
+from collections.abc import Sequence
 
 from app.store.base import SessionNotFound, Store
 from app.store.schemas import Session, SessionStatus, _utcnow
@@ -38,6 +39,26 @@ class InMemoryStore(Store):
             session = self._require(session_id)
             session.status = status
             session.finished_at = _utcnow()
+            return session
+
+    async def record_block(
+        self,
+        session_id: str,
+        *,
+        category: str,
+        points: int,
+        flagged: bool,
+        embedding: Sequence[float] | None = None,
+    ) -> Session:
+        async with self._lock:
+            session = self._require(session_id)
+            session.guardrail_blocks += 1
+            session.adversary_score += points
+            if category not in session.adversary_categories:
+                session.adversary_categories.append(category)
+            session.flagged = session.flagged or flagged
+            if embedding is not None:
+                session.blocked_embeddings.append(list(embedding))
             return session
 
     def _require(self, session_id: str) -> Session:

@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: S1 sections filled. Guardrail / telemetry rows are still forward-looking.
+> Status: S1 + S2 sections filled. Telemetry rows are still forward-looking (S3).
 
 ## Request lifecycle
 
@@ -9,7 +9,7 @@ Browser
   │ HTTPS
   ▼
 Backend (FastAPI)
-  ├── Guardrail Engine   ── BLOCK ──▶ friendly refusal (real reason logged)   [S2]
+  ├── Guardrail Engine   ── BLOCK ──▶ friendly refusal (real reason logged)
   ├── LLM Integration    ──────────▶ OpenAI-compatible provider
   └── Challenge Engine   ──────────▶ deterministic evaluation
   │
@@ -19,8 +19,10 @@ OpenTelemetry SDK ──▶ OTel Collector ──┬──▶ Langfuse          
                                         └──▶ Loki       ──▶ Grafana
 ```
 
-As of S1 the chain is: `POST /api/chat` → session checks → `llm/` provider →
-`challenge/engine` → response. No guardrail, no telemetry yet.
+As of S2 the chain is: `POST /api/chat` → session checks → `guardrails/`
+(block → attempt consumed, adversary weighed, events logged, vague reply) →
+`llm/` provider → `challenge/engine` → response. Telemetry is plain
+`logging` behind `telemetry/events.py` until S3.
 
 ## Component boundaries
 
@@ -95,9 +97,75 @@ the file and the problem.
 | Malformed JSON / missing `recommendation` / value not in enum | `parse_completion_body` + `engine.evaluate` | `200`, `success:false` | **yes** |
 | Unknown `session_id` | route | `404` | n/a |
 | Session already `won` / `lost`, or out of attempts | route | `409` | n/a |
-| Guardrail block | — | — | — (S2) |
+| Guardrail block | `guardrails/engine` → `routes._handle_block` | `200`, `blocked:true` | **yes** |
+| Embedding endpoint down / timeout (layer 2) | `guardrails/engine` → fail open, `guardrail_degraded` event | `200`, prompt proceeds | as the LLM path decides |
 
-## To document in S2
+## Guardrails (S2)
 
-- [ ] Where the per-session adversary state lives and how it is keyed
-- [ ] Bypass detection: which embedding model, where vectors are cached, TTL
+`app/guardrails/`, built once in the lifespan handler from `rules.guardrails`.
+
+```
+prompt ─▶ normalize ─▶ layer 1: literal / re: patterns ─▶ layer 2: embeddings ─▶ PASS
+                            │ first match                     │ max cosine ≥ threshold
+                            ▼                                 ▼
+                          BLOCK                             BLOCK
+```
+
+- **Normalisation** (`normalize.py`, stdlib only): lowercase, strip diacritics
+  (NFD + explicit `đ→d`), collapse punctuation/whitespace. Patterns go through
+  the same function, so `sua da` matches `Sữa-Đá!!!`. Known trap: stripping
+  accents makes distinct words collide (`tự tử` = `từ từ`) — the balance test is
+  what catches this; the rejected patterns are listed in `challenge.yaml`.
+- **Layer 1**: patterns are literal phrases matched on word edges; a `re:` prefix
+  makes one a regex. Invalid regex → `RulesError` at startup.
+- **Priority = declaration order.** First matching category wins, so the three
+  signal categories are declared before the three naive ones. Otherwise
+  "ignore previous instructions … iced milk coffee" would be recorded as
+  `DIRECT_TARGET_REQUEST` and score 0 adversary points. Guarded by
+  `test_real_rules_put_signal_categories_first`.
+- **Layer 2**: `OpenAIEmbedder` (`text-embedding-3-small`, same endpoint/key as
+  chat, `EMBEDDING_TIMEOUT_SECONDS`). Runs only if layer 1 passed. Example
+  vectors are embedded once on first use and cached in the engine for the life
+  of the process. No `LLM_API_KEY` → layer 2 inactive (warning at boot). An
+  embedding error **fails open** and returns `degraded`, which the route emits as
+  `guardrail_degraded`.
+- **What the player sees**: `blocked: true` + `block_message_vi|en` (by
+  `ChatRequest.lang`). Category, matched pattern, similarity and adversary state
+  never leave the server — asserted in `test_api.py`.
+- **A block consumes an attempt** (confirmed 2026-09-13). It is a move that did
+  not work, unlike an LLM outage; and until S4/S5 the attempt cap is the only
+  cost of probing.
+
+Tests: `test_guardrails.py` (engine mechanics, hand-built rules),
+`test_guardrail_balance.py` (real `challenge.yaml`: forbidden blocked in the
+right category, solutions + neutral + `solution_paths` pass). Offline it uses
+`HashingEmbedder` with its own threshold — proves wiring, not semantic
+generalisation. `RUN_LIVE_TESTS=1` re-runs it against the real embedder and
+threshold; do that before an event.
+
+## Adversary state (S2)
+
+- **Where**: on the `Session` model (`store/schemas.py`), keyed by `session_id`
+  like everything else — `adversary_score`, `adversary_categories` (list, for
+  `count_distinct_only`; JSON-friendly for Redis in S4), `flagged`,
+  `guardrail_blocks`, `blocked_embeddings`.
+- **Who decides**: `guardrails/adversary.AdversaryTracker.on_block` is pure —
+  reads config + current counters, returns `AdversaryUpdate`. `store.record_block`
+  only persists. The route emits `guardrail_block` (with real category and
+  `label`), `adversary_signal` for every signal-category block (0 points on a
+  repeat), and `session_flagged` once, when the total first reaches
+  `flag_threshold`.
+- **Never** in any response, never touches score. `InMemoryStore` → lost on
+  restart; moves to Redis with the rest of the session in S4.
+
+## Bypass detection (designed S2, live S3)
+
+- **Model**: the layer-2 embedder — same vectors, no second model.
+- **Cached where**: `Session.blocked_embeddings`, appended by `record_block`
+  when a block carried an embedding. S2 fills it only for layer-2 blocks; S3
+  must also embed signal-category (layer-1) blocks, since those are the ones
+  bypass detection is about, then score each passing prompt against the list
+  (`bypass_detection.similarity_threshold`, `bypass_bonus`).
+- **TTL**: the session's lifetime. In memory now; in S4 they go with the session
+  key in Redis and expire with it. Vectors are ~1.5k floats — bound the list
+  (e.g. last N) when S3 lands if sessions run long.

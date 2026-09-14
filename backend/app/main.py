@@ -23,7 +23,7 @@ from app.llm.base import LLMProvider
 from app.llm.openai_provider import OpenAICompatibleProvider
 from app.store.base import Store
 from app.store.memory import InMemoryStore
-from app.telemetry import events
+from app.telemetry import events, tracing
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +51,7 @@ def create_app(
 ) -> FastAPI:
     settings = get_settings()
     events.configure()
+    tracing.configure()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):

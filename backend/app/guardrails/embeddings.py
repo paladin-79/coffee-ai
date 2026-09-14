@@ -64,7 +64,7 @@ class OpenAIEmbedder(Embedder):
         max_retries: int = 1,
     ) -> None:
         # Imported here so the offline embedders stay importable without the SDK.
-        from openai import AsyncOpenAI
+        from langfuse.openai import AsyncOpenAI
 
         self._client = AsyncOpenAI(
             base_url=base_url, api_key=api_key, timeout=timeout, max_retries=max_retries
@@ -78,7 +78,11 @@ class OpenAIEmbedder(Embedder):
             return []
         try:
             resp = await self._client.embeddings.create(
-                model=self._model, input=list(texts)
+                model=self._model,
+                input=list(texts),
+                # `name` is a Langfuse tracing extra: langfuse.openai wraps
+                # this method with a signature openai's own stubs don't know.
+                name="embed-guardrail-prompt",  # type: ignore[call-arg]
             )
         except OpenAIError as exc:
             raise EmbeddingError(str(exc)) from exc

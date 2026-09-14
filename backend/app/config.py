@@ -49,6 +49,14 @@ class Settings(BaseSettings):
     log_prompts: bool = True
     log_responses: bool = True
 
+    # --- Langfuse -------------------------------------------------------
+    # Read here rather than left to the SDK's own os.environ lookup: pydantic
+    # settings parses .env into this object only, it never populates the
+    # process environment, so the SDK would otherwise see nothing.
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_base_url: str = "https://cloud.langfuse.com"
+
     @property
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]

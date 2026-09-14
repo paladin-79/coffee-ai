@@ -14,6 +14,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, HTTPException, Request
+from langfuse import get_client, propagate_attributes
 
 from app.api.schemas import (
     ChatRequest,
@@ -85,52 +86,96 @@ async def chat(body: ChatRequest, request: Request) -> ChatResponse:
     if session.attempts >= max_attempts:
         raise HTTPException(status_code=409, detail="no attempts remaining")
 
-    decision = await guardrails.check(body.prompt)
-    if decision.degraded:
-        events.guardrail_degraded(
+    langfuse = get_client()
+    # One attempt = one trace. session_id/user_id propagate to every child
+    # observation below (guardrail check, LLM generation, challenge eval), so
+    # the Sessions view in Langfuse can replay a player's whole run.
+    with (
+        langfuse.start_as_current_observation(
+            as_type="span",
+            name="process-chat-attempt",
+            input={"prompt": body.prompt},
+        ) as root_span,
+        propagate_attributes(
             session_id=session.session_id,
-            layer=decision.layer or 0,
-            reason="embedding unavailable",
+            user_id=session.player_id,
+            metadata={"attempt_number": str(session.attempts + 1)},
+        ),
+    ):
+        with langfuse.start_as_current_observation(
+            as_type="span", name="check-guardrails", input={"prompt": body.prompt}
+        ) as guardrail_span:
+            decision = await guardrails.check(body.prompt)
+            guardrail_span.update(
+                output={
+                    "blocked": decision.blocked,
+                    "category": decision.category,
+                    "layer": decision.layer,
+                    "matched": decision.matched,
+                    "similarity": decision.similarity,
+                }
+            )
+
+        if decision.degraded:
+            events.guardrail_degraded(
+                session_id=session.session_id,
+                layer=decision.layer or 0,
+                reason="embedding unavailable",
+            )
+        if decision.blocked:
+            response = await _handle_block(
+                body, decision, session, store, adversary, guardrails, max_attempts
+            )
+            root_span.update(output=response.model_dump())
+            return response
+
+        # Transport failure: the attempt is not consumed, the player retries free.
+        try:
+            llm_response = await provider.complete(rules.system_prompt, body.prompt)
+        except LLMTransportError:
+            root_span.update(
+                output={"error": "llm_transport_error"}, level="ERROR"
+            )
+            raise HTTPException(
+                status_code=503,
+                detail="the AI is unavailable right now — this attempt was not counted, try again",
+            )
+
+        session = await store.add_attempt(body.session_id)
+        with langfuse.start_as_current_observation(
+            as_type="span",
+            name="evaluate-challenge",
+            input={"recommendation": llm_response.recommendation},
+        ) as eval_span:
+            result = evaluate(llm_response.recommendation, rules)
+            eval_span.update(
+                output={"success": result.success, "readable": result.readable}
+            )
+
+        if result.readable:
+            reply = llm_response.reply
+        else:
+            reply = llm_response.reply or UNREADABLE_REPLY
+
+        status = "active"
+        if result.success:
+            session = await store.finish(body.session_id, "won")
+            status = "won"
+        elif session.attempts >= max_attempts:
+            session = await store.finish(body.session_id, "lost")
+            status = "lost"
+
+        response = ChatResponse(
+            reply=reply,
+            recommendation=result.recommendation,
+            success=result.success,
+            blocked=False,
+            status=status,
+            attempt=session.attempts,
+            attempts_remaining=max(0, max_attempts - session.attempts),
         )
-    if decision.blocked:
-        return await _handle_block(
-            body, decision, session, store, adversary, guardrails, max_attempts
-        )
-
-    # Transport failure: the attempt is not consumed, the player retries free.
-    try:
-        llm_response = await provider.complete(rules.system_prompt, body.prompt)
-    except LLMTransportError:
-        raise HTTPException(
-            status_code=503,
-            detail="the AI is unavailable right now — this attempt was not counted, try again",
-        )
-
-    session = await store.add_attempt(body.session_id)
-    result = evaluate(llm_response.recommendation, rules)
-
-    if result.readable:
-        reply = llm_response.reply
-    else:
-        reply = llm_response.reply or UNREADABLE_REPLY
-
-    status = "active"
-    if result.success:
-        session = await store.finish(body.session_id, "won")
-        status = "won"
-    elif session.attempts >= max_attempts:
-        session = await store.finish(body.session_id, "lost")
-        status = "lost"
-
-    return ChatResponse(
-        reply=reply,
-        recommendation=result.recommendation,
-        success=result.success,
-        blocked=False,
-        status=status,
-        attempt=session.attempts,
-        attempts_remaining=max(0, max_attempts - session.attempts),
-    )
+        root_span.update(output=response.model_dump())
+        return response
 
 
 async def _handle_block(

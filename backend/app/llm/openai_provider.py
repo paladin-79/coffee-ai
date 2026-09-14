@@ -7,7 +7,8 @@ module.
 
 from __future__ import annotations
 
-from openai import AsyncOpenAI, OpenAIError
+from langfuse.openai import AsyncOpenAI
+from openai import OpenAIError
 
 from app.challenge.rules import LLMRules
 from app.llm.base import LLMProvider
@@ -46,6 +47,9 @@ class OpenAICompatibleProvider(LLMProvider):
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
+                # `name` is a Langfuse tracing extra: langfuse.openai wraps
+                # this method with a signature openai's own stubs don't know.
+                name="generate-completion",  # type: ignore[call-overload]
             )
         except OpenAIError as exc:
             raise LLMTransportError(str(exc)) from exc

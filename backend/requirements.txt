@@ -21,7 +21,7 @@ httpx
 # opentelemetry-exporter-otlp
 # opentelemetry-instrumentation-fastapi
 # opentelemetry-instrumentation-httpx
-# langfuse
+langfuse             # Langfuse SDK — traces LLM calls now; OTel Collector fronts it later
 # structlog
 
 # --- Gamification (S4) -------------------------------------------------------

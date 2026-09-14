@@ -142,6 +142,18 @@ containers down.
 > newgrp docker   # or log out and back in — group changes need a fresh shell
 > ```
 
+Langfuse is a separate overlay (its own Postgres/ClickHouse/Redis/MinIO —
+heavier than the main stack, so it isn't in the default `up -d`):
+
+```bash
+docker compose -f langfuse/docker-compose.yml up -d
+```
+
+First run: sign up at `http://localhost:3002`, create a project, generate an
+API key pair (Settings → API Keys), then set `LANGFUSE_PUBLIC_KEY` /
+`LANGFUSE_SECRET_KEY` / `LANGFUSE_BASE_URL=http://localhost:3002` in `.env`
+before starting `coffee-backend`. Details: [`langfuse/README.md`](langfuse/README.md).
+
 Live since S1:
 
 | Service | URL | Purpose |
@@ -149,12 +161,17 @@ Live since S1:
 | coffee-frontend | http://localhost:3000 | The game |
 | coffee-backend | http://localhost:8000/docs | API + OpenAPI explorer |
 
+Live now (start separately, see above):
+
+| Service | URL | Purpose |
+|---|---|---|
+| langfuse | http://localhost:3002 | Per-attempt LLM trace inspection |
+
 Arriving in S3 (observability):
 
 | Service | URL | Purpose |
 |---|---|---|
 | grafana | http://localhost:3001 | Game / LLM / guardrail dashboards |
-| langfuse | http://localhost:3002 | Per-attempt LLM trace inspection |
 | prometheus | http://localhost:9090 | Metrics store |
 | loki | http://localhost:3100 | Log store |
 | otel-collector | :4317 / :4318 | Telemetry ingest |

@@ -171,9 +171,9 @@ Langfuse first (fastest debugging payoff), then OTel SDK, collector,
 Prometheus/Loki, Grafana. Dashboards provisioned from JSON in the repo.
 
 ### Langfuse
-- [ ] Self-hosted Langfuse up via the compose overlay
-- [ ] Per attempt: prompt, response, tokens, latency, model visible
-- [ ] Traces correlated by `session_id`
+- [x] Self-hosted Langfuse up via the compose overlay
+- [x] Per attempt: prompt, response, tokens, latency, model visible
+- [x] Traces correlated by `session_id`
 
 ### OTel
 - [ ] OTel SDK in the backend, `gen_ai.*` semantic conventions on the LLM span

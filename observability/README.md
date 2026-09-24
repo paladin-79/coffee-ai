@@ -1,5 +1,16 @@
 # Observability
 
+> **Dropped, 2026-09-14** (design record only — this directory's `.gitkeep`
+> files are the only thing here; nothing below was built). Scope call: the
+> event is ~20 players reviewed after the fact, not a live-monitored service —
+> Langfuse alone covers that need. See `docs/observability.md` "Scope:
+> Langfuse-only for this event" and `docs/checklist.md` S3. The actual
+> implementation (`backend/app/telemetry/tracing.py`,
+> `backend/app/api/routes.py`) talks to Langfuse's Python SDK directly — no
+> OTel Collector — and uses different span names than the plan below
+> (`check-guardrails`, `generate-completion`, `evaluate-challenge`, all as
+> children of one `process-chat-attempt` root span per attempt).
+
 The application exports to the OpenTelemetry Collector and nothing else. The
 collector fans out to Langfuse, Prometheus, and Loki. Adding Datadog later is a
 change to `otel/otel-collector-config.yaml` — not to application code.

@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { api, ApiError, type ChallengePublic } from "@/lib/api";
+import { splitInstructions } from "@/lib/instructions";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -11,19 +13,26 @@ export default function LandingPage() {
   const [nickname, setNickname] = useState("");
   const [starting, setStarting] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setError(null);
     api
       .getChallenge()
       .then(setChallenge)
       .catch((e: unknown) =>
-        setError(e instanceof ApiError ? e.message : "Không tải được thử thách."),
+        setError(
+          e instanceof ApiError ? e.message : "Không tải được thử thách.",
+        ),
       );
+  }, []);
+
+  useEffect(() => {
+    load();
     try {
       setNickname(localStorage.getItem("coffee.nickname") ?? "");
     } catch {
       /* private mode */
     }
-  }, []);
+  }, [load]);
 
   async function start() {
     setStarting(true);
@@ -51,48 +60,93 @@ export default function LandingPage() {
     }
   }
 
+  const vi = challenge ? splitInstructions(challenge.instructions_vi) : null;
+  const en = challenge ? splitInstructions(challenge.instructions_en) : null;
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center px-5 py-10">
-      <div className="text-5xl">☕</div>
-      <h1 className="mt-4 text-3xl font-bold">
-        {challenge?.title ?? "Coffee AI Challenge"}
-      </h1>
-      <p className="mt-2 text-lg text-stone-600">
-        {challenge?.tagline ?? "…"}
-      </p>
+    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-5 py-8 lg:px-10 lg:py-12">
+      {/* Both the flex column and the grid tracks need an explicit zero min
+          size, or the mission line widens the column instead of wrapping. */}
+      <div className="flex min-w-0 flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-center lg:gap-14">
+        {/* The illustration is drawn in a warm cream palette that does not
+            blend into the enamel ground, so it is matted and framed instead —
+            read as a poster pinned to the wall rather than a failed blend.
+            It carries the wordmark itself, which is why no separate one is
+            drawn on this page. */}
+        <figure className="rounded-xl border border-enamel-edge bg-enamel-raised p-2">
+          <Image
+            src="/image/add-landingpage.png"
+            alt="Coffee AI Challenge — một robot và một ly cà phê đứng cạnh bảng gợi ý của AI"
+            width={1672}
+            height={940}
+            priority
+            sizes="(max-width: 1024px) 92vw, 520px"
+            className="w-full rounded-lg"
+          />
+        </figure>
 
-      {challenge && (
-        <div className="mt-6 space-y-3 rounded-xl bg-white p-4 text-sm leading-relaxed shadow-sm">
-          <p className="whitespace-pre-line">{challenge.instructions_vi}</p>
-          <p className="whitespace-pre-line text-stone-500">
-            {challenge.instructions_en}
-          </p>
-          <p className="text-stone-500">
-            Bạn có <strong>{challenge.max_attempts}</strong> lượt thử.
-          </p>
-        </div>
-      )}
+        <section className="min-w-0">
+          {vi?.setup && (
+            <p className="max-w-measure text-small text-milk-dim">{vi.setup}</p>
+          )}
 
-      <label className="mt-6 block text-sm font-medium">
-        Biệt danh <span className="text-stone-400">(tuỳ chọn)</span>
-        <input
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          maxLength={40}
-          placeholder="cà phê thủ"
-          className="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 outline-none focus:border-coffee-accent"
-        />
-      </label>
+          {/* text-balance evens out the line lengths instead of leaving one
+              orphaned word on the last line, which is what made the ragged
+              right edge look accidental at this size. */}
+          <h1 className="type-display type-mission mt-3 text-balance break-words text-milk">
+            {vi?.mission ?? "Đang tải thử thách…"}
+          </h1>
 
-      <button
-        onClick={start}
-        disabled={starting || !challenge}
-        className="mt-4 rounded-xl bg-coffee-accent px-5 py-3 text-base font-semibold text-white disabled:opacity-40"
-      >
-        {starting ? "Đang bắt đầu…" : "Bắt đầu"}
-      </button>
+          {en && (
+            <p
+              lang="en"
+              className="mt-6 max-w-measure border-l-2 border-enamel-edge pl-4 text-small text-milk-dim"
+            >
+              {en.setup ? `${en.setup} ` : ""}
+              {en.mission}
+            </p>
+          )}
 
-      {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
+          <div className="mt-7 max-w-sm">
+            <label className="block">
+              <span className="text-small font-medium text-milk">
+                Biệt danh{" "}
+                <span className="font-normal text-milk-dim">(tuỳ chọn)</span>
+              </span>
+              <input
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                maxLength={40}
+                placeholder="cà phê thủ"
+                disabled={starting}
+                className="mt-2 w-full rounded-lg border border-enamel-edge bg-enamel-raised px-4 py-3 text-base text-milk outline-none placeholder:text-milk-dim/60 focus:border-caramel disabled:opacity-50"
+              />
+            </label>
+
+            <button
+              onClick={start}
+              disabled={starting || !challenge}
+              className="type-display mt-3 w-full rounded-lg bg-caramel px-6 py-4 text-lead text-enamel transition-colors hover:bg-caramel-lift disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {starting ? "Đang bắt đầu…" : "Bắt đầu"}
+            </button>
+
+            {error && (
+              <div className="mt-5 rounded-lg border border-signal bg-signal-wash p-4">
+                <p className="text-small text-signal-bright">{error}</p>
+                {!challenge && (
+                  <button
+                    onClick={load}
+                    className="mt-3 rounded-md border border-signal px-4 py-2 text-small font-medium text-milk hover:bg-signal/20"
+                  >
+                    Thử lại
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
     </main>
   );
 }

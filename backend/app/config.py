@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     challenge_config_path: Path = REPO_ROOT / "challenge.yaml"
     cors_allow_origins: str = "http://localhost:3000"
 
+    # Separate from Langfuse's own env var (LANGFUSE_TRACING_ENVIRONMENT) so
+    # one flag drives the "environment" attribute on every trace regardless of
+    # whether Langfuse ever reads its own process environment. Must match
+    # Langfuse's constraint: lowercase/digits/-/_ only, not starting with
+    # "langfuse".
+    app_env: str = "development"
+
     # --- Privacy --------------------------------------------------------
     log_prompts: bool = True
     log_responses: bool = True

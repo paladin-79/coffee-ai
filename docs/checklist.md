@@ -167,52 +167,90 @@ embedding similarity for paraphrases. LLM-as-judge is out of scope.
 
 ## S3 — Observability → MVP complete
 
-Langfuse first (fastest debugging payoff), then OTel SDK, collector,
-Prometheus/Loki, Grafana. Dashboards provisioned from JSON in the repo.
+**Scope call, 2026-09-14** (user decision): the event is ~20 players, each
+playing for 3-4 minutes, reviewed by the presenter *after* everyone has
+played — not a live-monitored production service during the event. Langfuse
+alone already answers the actual question ("what did the AI do, per player,
+per attempt" — verified end-to-end, see `observability.md`). OTel Collector +
+Prometheus + Loki + Grafana solve a different problem — live operational
+monitoring under concurrent load — that this event doesn't have. **Dropped**
+(`[-]`) below, not merely deferred: pick this back up only if the format
+changes (many simultaneous rooms, an unattended/long-running deployment, or a
+real need to watch the event live rather than review it after).
 
 ### Langfuse
 - [x] Self-hosted Langfuse up via the compose overlay
-- [x] Per attempt: prompt, response, tokens, latency, model visible
+- [x] Per attempt: prompt, response, tokens, latency, model visible — verified
+      end-to-end 2026-09-14 (`langfuse-cli api observations list`); see
+      `observability.md` "Docker networking" for the two bugs that silently
+      broke this before the fix
 - [x] Traces correlated by `session_id`
+- [x] `check-guardrails` uses the `guardrail` observation type, not generic
+      `span` — matches the Langfuse best-practices "most specific type" rule
+- [x] `environment` attribute set on every trace (`APP_ENV`)
 
-### OTel
-- [ ] OTel SDK in the backend, `gen_ai.*` semantic conventions on the LLM span
-- [ ] One attempt → one trace with four child spans (guardrail / llm / challenge eval / response)
-- [ ] Collector is the single egress point → Langfuse + Prometheus + Loki
-- [ ] Structured JSON logs, every event carrying `session_id` + `trace_id`
+### OTel / Collector — `[-]` dropped, see scope call above
+- [-] OTel SDK in the backend, `gen_ai.*` semantic conventions on the LLM span
+- [-] Collector is the single egress point → Langfuse + Prometheus + Loki
+- [x] One attempt → one trace with child spans (guardrail / llm / challenge
+      eval) — already true today via Langfuse's own span API directly
+      (`start_as_current_observation` in `routes.py`), no separate OTel
+      SDK/Collector needed for this part. Three children on the happy path,
+      not the originally-planned four — there is no separate "response" span;
+      the root span's own `output` carries the final response.
+- [x] Structured JSON logs, every event carrying `session_id` — already true
+      via `telemetry/events.py` (plain `logging`, predates OTel); `trace_id`
+      correlation was the one thing that needed the OTel/Collector path and is
+      dropped with it
 
-### Metrics
-- [ ] Game: sessions, attempts, successes, failures, guardrail blocks
-- [ ] LLM: request count, duration, input/output tokens
-- [ ] HTTP: request count, duration
+### Metrics — `[-]` dropped (no Prometheus without the Collector above)
+- [-] Game: sessions, attempts, successes, failures, guardrail blocks
+- [-] LLM: request count, duration, input/output tokens
+- [-] HTTP: request count, duration
 
-### Grafana (provisioned as code)
-- [ ] `game.json` — active players, attempts, successes, avg attempts to success, fastest completion
-- [ ] `llm.json` — request rate, latency percentiles, token usage, error rate
-- [ ] `guardrails.json` — block rate, blocks by category, injection attempts over time
-- [ ] `guardrails.json` — **Potential adversaries** table: sessions ranked by adversary score, flagged rows highlighted
-- [ ] All three survive `docker compose down -v && up` (provisioned, not hand-clicked)
+### Grafana — `[-]` dropped (needs Prometheus/Loki above)
+- [-] `game.json` — active players, attempts, successes, avg attempts to success, fastest completion
+- [-] `llm.json` — request rate, latency percentiles, token usage, error rate
+- [-] `guardrails.json` — block rate, blocks by category, injection attempts over time
+- [-] All three survive `docker compose down -v && up` (provisioned, not hand-clicked)
 
-### Adversary tracking — bypass detection
+### Adversary tracking — bypass detection (kept — independent of OTel/Grafana)
 - [ ] Blocked-prompt embeddings retained per session
 - [ ] Each passing prompt scored against them; similarity > threshold → `bypass_bonus` added
-- [ ] Bypass event visible in Langfuse and on the adversary panel
+- [ ] Bypass event visible somewhere reviewable post-event — **open question**:
+      the original plan was a Grafana "Potential adversaries" panel, which is
+      dropped with Grafana above. Replacement not yet decided: a Langfuse
+      tag/filter, or a small script reading `session.adversary_score`/
+      `flagged` straight from the `store` — decide before S6's dry run.
 
 ### Logs
-- [ ] Loki queryable by `session_id`; a query joins back to a trace
-- [ ] Redaction path when `LOG_PROMPTS=false`
+- [x] Structured JSON events exist (`telemetry/events.py`), every event
+      carries `session_id`
+- [x] Redaction path when `LOG_PROMPTS=false` — verified for Langfuse
+      (`tracing._mask_otel_spans`); structured JSON logs redact via the same
+      flag independently (`events._prompt_field`)
+- [-] Loki queryable by `session_id` — dropped with the OTel/Grafana stack;
+      `docker compose logs coffee-backend` (or redirecting stdout to a file)
+      is enough for a single-event postmortem at this scale
 
 ### Docs
-- [ ] `observability.md` "To document in S3" section completed
+- [x] `observability.md` updated to reflect the Langfuse-only scope, 2026-09-14
 
 ### Exit criteria
-- [ ] Full stack starts with one command
-- [ ] One attempt → one trace with four child spans
-- [ ] Langfuse shows prompt/response/tokens/latency per session
-- [ ] Three Grafana dashboards with real data
-- [ ] JSON logs queryable in Loki by `session_id`
+- [ ] Full stack starts with one command — not yet true even for the
+      Langfuse-only scope: Langfuse is a separate compose project
+      (`langfuse/docker-compose.yml`) by design, so it's still two commands
+      (`docker compose -f langfuse/docker-compose.yml up -d` then
+      `docker compose up -d`). Leave as-is unless this specifically matters
+      for the dry run.
+- [x] One attempt → one trace with child spans — verified 2026-09-14
+- [x] Langfuse shows prompt/response/tokens/latency per session — verified
+      end-to-end 2026-09-14
 - [ ] Bypass detection live
-- [ ] "Potential adversaries" panel populated
+- [-] Three Grafana dashboards with real data — dropped, see scope call
+- [-] JSON logs queryable in Loki by `session_id` — dropped, see scope call
+- [-] "Potential adversaries" panel populated — dropped with Grafana; see
+      Adversary tracking open question above
 
 ---
 

@@ -30,6 +30,10 @@ class PublicRules(BaseModel):
     instructions_vi: str
     instructions_en: str
     max_attempts: int
+    #: Bait shown to the player as "suggested prompts". Every entry is
+    #: expected to trip a layer-1 guardrail — see the note in
+    #: challenge.yaml and tests/test_decoys.py.
+    decoy_prompts: list[str] = []
 
 
 class LLMRules(BaseModel):

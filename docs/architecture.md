@@ -1,6 +1,10 @@
 # Architecture
 
-> Status: S1 + S2 sections filled. Telemetry rows are still forward-looking (S3).
+> Status: S1 + S2 sections filled. S3 telemetry: Langfuse done; the
+> OTel/Prometheus/Loki/Grafana row below was the original plan and is
+> **dropped** for this event (scope call, 2026-09-14 — see
+> `observability.md` "Scope: Langfuse-only for this event"), kept here
+> struck through as a design record in case the format changes later.
 
 ## Request lifecycle
 
@@ -14,9 +18,17 @@ Backend (FastAPI)
   └── Challenge Engine   ──────────▶ deterministic evaluation
   │
   ▼
-OpenTelemetry SDK ──▶ OTel Collector ──┬──▶ Langfuse                          [S3]
-                                        ├──▶ Prometheus ──▶ Grafana
-                                        └──▶ Loki       ──▶ Grafana
+Langfuse (Python SDK, direct — no collector)              [S3, done]
+  langfuse.openai wraps the LLM/embedding clients; app/api/routes.py adds
+  spans for guardrail-check / challenge-eval around them.
+```
+
+Originally planned, dropped 2026-09-14 — see `observability.md`:
+
+```
+~~OpenTelemetry SDK ──▶ OTel Collector ──┬──▶ Langfuse~~
+~~                                        ├──▶ Prometheus ──▶ Grafana~~
+~~                                        └──▶ Loki       ──▶ Grafana~~
 ```
 
 As of S2 the chain is: `POST /api/chat` → session checks → `guardrails/`

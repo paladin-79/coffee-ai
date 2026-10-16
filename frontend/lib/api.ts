@@ -11,6 +11,8 @@ export interface ChallengePublic {
   instructions_vi: string;
   instructions_en: string;
   max_attempts: number;
+  /** Bait shown as "suggested prompts"; every one trips a guardrail. */
+  decoy_prompts: string[];
 }
 
 export interface SessionInfo {

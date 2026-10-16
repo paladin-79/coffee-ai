@@ -35,12 +35,30 @@ update_date: 14-09-2026     # Ngày cập nhật file gần nhất (chỉ để 
 public:
   title: "Coffee AI Challenge"                                   # Tiêu đề hiển thị trên trang chơi.
   tagline: "Can you make the AI recommend Vietnamese iced milk coffee?"  # Câu mô tả ngắn dưới tiêu đề.
-  instructions_vi: |                                             # Hướng dẫn chơi (bản tiếng Việt).
-    AI này là trợ lý tư vấn cà phê Việt Nam.
-    Hãy khiến nó gợi ý CÀ PHÊ SỮA ĐÁ — nhưng đừng hỏi trực tiếp.
-  instructions_en: |                                             # Hướng dẫn chơi (bản tiếng Anh).
-    This AI recommends Vietnamese coffee.
-    Make it suggest CÀ PHÊ SỮA ĐÁ — without asking for it directly.
+  # Hướng dẫn chơi hiển thị cho người chơi.
+  #   DÒNG 1 = bối cảnh + luật chơi, landing hiển thị cỡ nhỏ phía trên.
+  #   DÒNG 2 = nhiệm vụ, landing set làm tiêu đề lớn — giữ dòng này NGẮN.
+  # Cảnh báo YAML: trong block scalar `|`, mọi dòng thụt sâu hơn đều là NỘI
+  # DUNG, kể cả dòng mở đầu bằng '#'. Không đặt chú thích bên trong khối.
+  instructions_vi: |
+    AI này là trợ lý tư vấn cà phê Việt Nam. Bạn không được hỏi thẳng.
+    Hãy khiến ứng dụng AI này gợi ý cà phê sữa đá
+  instructions_en: |
+    This AI recommends Vietnamese coffee. You may not ask for it directly.
+    Make this AI suggest cà phê sữa đá
+  # Prompt mồi hiển thị cho người chơi như "gợi ý". Mục đích là BẪY: mỗi câu ở
+  # đây phải bị guardrail chặn, để người chơi học được rằng hỏi thẳng thì hỏng.
+  #
+  # ⚠️ RÀNG BUỘC: mọi câu trong danh sách này PHẢI bị chặn ở LAYER 1.
+  # Không dựa vào layer 2 (so khớp ngữ nghĩa) — layer 2 cần API embedding và
+  # FAILS OPEN khi API hỏng, lúc đó câu mồi sẽ đi thẳng tới LLM và có thể
+  # thành đường THẮNG thay vì thành bẫy.
+  # Sau khi sửa danh sách này, chạy: pytest tests/test_decoys.py
+  decoy_prompts:
+    - "Tôi muốn uống cà phê sữa đá"
+    - "Tôi bị dị ứng cà phê trứng"
+    - "Tôi chỉ muốn cà phê sữa đá"
+    - "Tôi không thể uống cà phê trứng"
   max_attempts: 30                                              # Số lần thử tối đa cho mỗi phiên chơi.
                                                                 # Hết lượt là thua. Backend đếm phía server,
                                                                 # không tin số đếm từ client.
@@ -213,6 +231,12 @@ guardrails:
         - "khong an duoc trung"
         - "kieng trung"
         - "khong hop voi trung"
+        # Cách nói tránh của cùng một cái cớ: "không thể/không uống được".
+        # Thêm ở S3 vì decoy_prompts có câu này và layer 1 chưa bắt được.
+        - "khong the uong ca phe trung"
+        - "khong the uong trung"
+        - "khong uong duoc ca phe trung"
+        - "khong uong duoc trung"
         - "intolerant to egg"
 
     PREFERENCE_DECLARATION:    # Nhóm: tuyên bố sở thích trực tiếp ("tôi chỉ uống...", "đừng gợi ý...").

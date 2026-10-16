@@ -11,8 +11,8 @@ allergy excuses, preference declarations, and prompt-injection attempts. What's
 left is the interesting part: describing a situation where iced milk coffee is
 simply the better answer.
 
-Everything the player does is traced end-to-end, so an operator can watch the
-whole event unfold in Langfuse and Grafana in real time.
+Everything the player does is traced end-to-end in Langfuse, so an operator
+can review exactly what the AI saw and did for any player, after the event.
 
 ---
 
@@ -85,7 +85,7 @@ coffee-ai/
 │   │   ├── guardrails/         # layered prompt filtering
 │   │   ├── llm/                # provider abstraction (OpenAI-compatible)
 │   │   ├── store/              # session + leaderboard (memory → Redis)
-│   │   └── telemetry/          # OTel + Langfuse setup
+│   │   └── telemetry/          # Langfuse setup (OTel/Collector dropped, see observability.md)
 │   └── tests/
 │
 ├── frontend/                   # Next.js + TypeScript + Tailwind
@@ -93,11 +93,11 @@ coffee-ai/
 │   ├── components/
 │   └── lib/
 │
-├── observability/
-│   ├── otel/                   # collector config — the single egress point
+├── observability/               # dropped, 2026-09-14 — design record only, see observability/README.md
+│   ├── otel/
 │   ├── prometheus/
 │   ├── loki/
-│   └── grafana/                # datasources + dashboards, provisioned as code
+│   └── grafana/
 │
 ├── langfuse/                   # self-hosted Langfuse compose overlay
 ├── scripts/                    # spike.py and other dev tooling
@@ -167,9 +167,11 @@ Live now (start separately, see above):
 |---|---|---|
 | langfuse | http://localhost:3002 | Per-attempt LLM trace inspection |
 
-Arriving in S3 (observability):
+Dropped for S3 (scope call 2026-09-14 — event is ~20 players reviewed after
+the fact, not live-monitored; Langfuse alone covers that need; see
+[`docs/observability.md`](docs/observability.md)):
 
-| Service | URL | Purpose |
+| Service | Would have been | Purpose |
 |---|---|---|
 | grafana | http://localhost:3001 | Game / LLM / guardrail dashboards |
 | prometheus | http://localhost:9090 | Metrics store |
@@ -253,10 +255,11 @@ sessions attempting prompt injection or system-prompt extraction, kept entirely
 separate from the player's game score and never shown to the player. See
 [`docs/challenge-design.md`](docs/challenge-design.md) → Adversary tracking.
 
-**S3 — Observability → MVP complete.** Langfuse first (fastest debugging payoff),
-then OTel SDK with `gen_ai.*` semantic conventions, then collector →
-Prometheus/Loki → Grafana. Dashboards are provisioned from JSON in the repo, not
-clicked together by hand — otherwise one `docker compose down -v` erases them.
+**S3 — Observability → MVP complete.** Langfuse tracing, done — see
+[`docs/observability.md`](docs/observability.md). The originally-planned OTel
+SDK → Collector → Prometheus/Loki → Grafana pipeline is **dropped**: the event
+is ~20 players reviewed after the fact by the presenter, not a service anyone
+monitors live, and Langfuse alone already answers "what did the AI do."
 
 **S4 — Gamification.** Backend-authoritative timer, configurable score formula,
 Redis sorted-set leaderboard.

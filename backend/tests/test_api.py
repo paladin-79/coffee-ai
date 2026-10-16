@@ -14,7 +14,14 @@ from app.llm.schemas import LLMResponse, LLMTransportError
 from app.main import create_app
 from app.store.memory import InMemoryStore
 
-PUBLIC_KEYS = {"title", "tagline", "instructions_vi", "instructions_en", "max_attempts"}
+PUBLIC_KEYS = {
+    "title",
+    "tagline",
+    "instructions_vi",
+    "instructions_en",
+    "max_attempts",
+    "decoy_prompts",
+}
 
 
 #: Hits DIRECT_TARGET_REQUEST at layer 1 — naive, no adversary weight.

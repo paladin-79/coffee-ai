@@ -103,7 +103,7 @@ async def chat(body: ChatRequest, request: Request) -> ChatResponse:
         ),
     ):
         with langfuse.start_as_current_observation(
-            as_type="span", name="check-guardrails", input={"prompt": body.prompt}
+            as_type="guardrail", name="check-guardrails", input={"prompt": body.prompt}
         ) as guardrail_span:
             decision = await guardrails.check(body.prompt)
             guardrail_span.update(

@@ -104,13 +104,22 @@ Levers, in order of preference:
 - [ ] Signal-category blocks emit an `adversary` flag / `unsafe` label in telemetry
 
 ### S3 — Observability (MVP)
-- [ ] Full stack starts with one command
-- [ ] One attempt → one trace with four child spans
-- [ ] Langfuse shows prompt/response/tokens/latency per session
-- [ ] Three Grafana dashboards with real data
-- [ ] JSON logs queryable in Loki by `session_id`
+Scope call 2026-09-14: OTel/Prometheus/Loki/Grafana dropped, Langfuse-only —
+see `docs/observability.md` "Scope: Langfuse-only for this event" and
+`docs/checklist.md` S3 for the itemized list and why.
+- [ ] Full stack starts with one command (still two: Langfuse is a separate
+      compose project by design)
+- [x] One attempt → one trace with child spans (guardrail / llm / challenge
+      eval), via Langfuse's own span API — verified 2026-09-14
+- [x] Langfuse shows prompt/response/tokens/latency per session — verified
+      end-to-end 2026-09-14
+- [-] Three Grafana dashboards with real data — dropped, see scope call
+- [-] JSON logs queryable in Loki by `session_id` — dropped, see scope call
 - [ ] Bypass detection live: blocked prompt embeddings retained per session, passing prompts scored against them
-- [ ] "Potential adversaries" panel on the guardrail dashboard, sessions ranked by signal score, flagged rows highlighted
+- [ ] "Potential adversaries" **surface** (not necessarily a Grafana panel —
+      Grafana dropped; a Langfuse tag/filter or a small script over `store`
+      are the live candidates), sessions ranked by signal score, flagged
+      rows highlighted — see `docs/checklist.md` S3 open question
 
 ### S4 — Gamification
 - [ ] Score correct and tested
@@ -161,9 +170,12 @@ something else — and those are the people to talk to afterwards.
 - **Not on the public leaderboard.**
 - **Not part of `score`.** It never moves the number the player sees.
 
-It is an operator-only view, surfaced in Grafana and Langfuse, ranking sessions
-by how deliberately adversarial they look. Config lives in `challenge.yaml`
-under `adversary_tracking`.
+It is an operator-only view, ranking sessions by how deliberately adversarial
+they look. Config lives in `challenge.yaml` under `adversary_tracking`.
+Surfaced in Langfuse today (block category is visible on the `check-guardrails`
+observation per attempt); a cross-session ranked view was originally planned
+as a Grafana panel, now dropped with Grafana — see `docs/checklist.md` S3
+"Adversary tracking" for the still-open replacement.
 
 ### How the signal is built
 

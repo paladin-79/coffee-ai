@@ -68,5 +68,6 @@ def configure() -> Langfuse:
         public_key=settings.langfuse_public_key or None,
         secret_key=settings.langfuse_secret_key or None,
         base_url=settings.langfuse_base_url,
+        environment=settings.app_env,
         mask_otel_spans=_mask_otel_spans,
     )
